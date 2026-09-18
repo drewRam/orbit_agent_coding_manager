@@ -7,6 +7,5 @@ class PlannedTask(BaseModel):
     assigned_agent_id: str
     dependencies: list[str] = []
 
-
 class ProjectPlan(BaseModel):
     tasks: list[PlannedTask]

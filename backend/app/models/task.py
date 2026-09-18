@@ -1,7 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel
 
-
 class TaskStatus(str, Enum):
     PENDING = "pending"
     READY = "ready"
