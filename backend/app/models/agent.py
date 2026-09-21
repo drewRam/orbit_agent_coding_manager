@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class AgentStatus(str, Enum):
     IDLE = "idle"
+    READY = "ready"
     THINKING = "thinking"
     WORKING = "working"
     WAITING = "waiting"
@@ -13,4 +14,5 @@ class Agent(BaseModel):
     id: str
     name: str
     role: str
+    capabilities: list[str] = []
     status: AgentStatus = AgentStatus.IDLE

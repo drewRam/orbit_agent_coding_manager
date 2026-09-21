@@ -9,6 +9,12 @@ class ManagerAgent(BaseAgent):
             agent_id="manager",
             name="Manager",
             role="Project orchestration",
+            capabilities=[
+                "planning",
+                "orchestration",
+                "delegation",
+                "management",
+            ],
         )
 
         self.planner = Planner()
