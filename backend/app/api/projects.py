@@ -1,5 +1,9 @@
+import io
+import json
+import re
+import zipfile
+from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, HTTPException, WebSocket
-
 from app.models.project import Project
 from app.models.task import Task
 from app.agents.manager import ManagerAgent
@@ -8,18 +12,25 @@ from app.orchestration.engine import OrchestrationEngine
 from app.events.connection import ConnectionManager
 from app.events.bus import EventBus
 
-
 router = APIRouter(
     prefix="/api/projects",
     tags=["projects"],
 )
-
 
 projects: dict[str, Project] = {}
 
 connection_manager = ConnectionManager()
 
 event_bus = EventBus(connection_manager)
+
+def safe_project_name(name: str) -> str:
+    cleaned = re.sub(
+        r"[^a-zA-Z0-9_-]+",
+        "_",
+        name,
+    )
+
+    return cleaned.strip("_") or "orbit-project"
 
 
 def build_tasks(plan):
@@ -165,3 +176,109 @@ async def websocket_events(
             project_id,
             websocket,
         )
+
+@router.get("/{project_id}/download")
+async def download_project(project_id: str):
+    project = projects.get(project_id)
+
+    if project is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found",
+        )
+
+    artifacts = {}
+
+    # Collect artifacts from completed tasks.
+    # If two tasks produced the same path,
+    # the later artifact replaces the earlier one.
+    for task in project.tasks:
+        if task.status != "completed":
+            continue
+
+        for artifact in task.artifacts:
+            artifacts[artifact.path] = artifact
+
+    if not artifacts:
+        raise HTTPException(
+            status_code=400,
+            detail="Project has no generated artifacts.",
+        )
+
+    buffer = io.BytesIO()
+
+    project_folder = (
+        f"{safe_project_name(project.name)}"
+        f"-{project.id}"
+    )
+
+    with zipfile.ZipFile(
+        buffer,
+        "w",
+        zipfile.ZIP_DEFLATED,
+    ) as archive:
+        # Write generated files
+        for path, artifact in artifacts.items():
+            archive.writestr(
+                f"{project_folder}/{path}",
+                artifact.content,
+            )
+
+        # Write project report
+        if project.final_result:
+            archive.writestr(
+                f"{project_folder}/ORBIT_REPORT.md",
+                project.final_result,
+            )
+
+        # Write a machine-readable manifest
+        manifest = {
+            "project_id": project.id,
+            "project_name": project.name,
+            "goal": project.goal,
+            "replan_count": project.replan_count,
+            "tasks": [
+                {
+                    "id": task.id,
+                    "title": task.title,
+                    "status": task.status.value,
+                    "assigned_agent_id": (
+                        task.assigned_agent_id
+                    ),
+                    "artifacts": [
+                        {
+                            "path": artifact.path,
+                            "description": (
+                                artifact.description
+                            ),
+                        }
+                        for artifact in task.artifacts
+                    ],
+                }
+                for task in project.tasks
+            ],
+        }
+
+        archive.writestr(
+            f"{project_folder}/ORBIT_MANIFEST.json",
+            json.dumps(
+                manifest,
+                indent=2,
+            ),
+        )
+
+    buffer.seek(0)
+
+    filename = (
+        f"{project_folder}.zip"
+    )
+
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"'
+            )
+        },
+    )

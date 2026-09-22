@@ -1,9 +1,7 @@
 import asyncio
-
 from app.agents.base import BaseAgent
 from app.llm.provider import LLMProvider
 from app.models.task import Task
-
 
 class ReviewerAgent(BaseAgent):
     def __init__(self):
@@ -26,48 +24,56 @@ class ReviewerAgent(BaseAgent):
         context = task.input_context or "No implementation context provided."
 
         prompt = f"""
-You are the Reviewer agent inside ORBIT.
+                You are the Reviewer agent inside ORBIT.
 
-Your job is to review the work produced by another agent.
+                Your job is to review work produced by another agent.
 
-TASK:
-{task.title}
+                TASK:
+                {task.title}
 
-DESCRIPTION:
-{task.description}
+                DESCRIPTION:
+                {task.description}
 
-WORK TO REVIEW:
-{context}
+                WORK TO REVIEW:
+                {context}
 
-Evaluate the work for:
+                Evaluate the work for:
 
-1. Correctness
-2. Completeness
-3. Requirements coverage
-4. Bugs or logical problems
-5. Edge cases
-6. Testing concerns
-7. Maintainability
+                1. Correctness
+                2. Completeness
+                3. Requirements coverage
+                4. Bugs or logical problems
+                5. Edge cases
+                6. Testing concerns
+                7. Maintainability
 
-At the end, provide a clear verdict:
+                Decide whether the work is acceptable.
 
-VERDICT: APPROVED
+                Return ONLY valid JSON in this exact structure:
 
-or
+                {{
+                    "approved": true,
+                    "feedback": "Explain your reasoning and any important findings.",
+                    "result": "Provide a concise review of the work."
+                }}
 
-VERDICT: NEEDS_CHANGES
+                Rules:
 
-Then explain why and list any changes that should be made.
+                - approved must be true or false.
+                - Set approved to true only if the work is acceptable.
+                - Set approved to false if meaningful changes are required.
+                - feedback should explain why.
+                - result should summarize the review.
+            """
 
-Return only the review.
-"""
-
-        result = self.llm.generate(prompt)
+        review = self.llm.generate_json(prompt)
 
         return {
             "agent": self.id,
             "task": task.id,
             "status": "completed",
             "message": f"Reviewer completed: {task.title}",
-            "result": result,
+            "approved": review.get("approved", False),
+            "feedback": review.get("feedback", ""),
+            "result": review.get("result", ""),
         }

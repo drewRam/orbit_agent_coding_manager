@@ -1,14 +1,22 @@
-# Ignore dependency folders
+# Dependency folders
 node_modules/
 venv/
 env/
+.venv/
 
-# Ignore environment variables / secrets
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment variables / secrets
 .env
+.env.*
+!.env.example
 
-# Ignore operating system files
+# Operating system files
 .DS_Store
 Thumbs.db
 
-# Ignore log files
+# Logs
 *.log

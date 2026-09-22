@@ -1,6 +1,5 @@
 from app.orchestration.planner import Planner
 
-
 planner = Planner()
 
 plan = planner.create_plan(

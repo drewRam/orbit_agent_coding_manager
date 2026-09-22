@@ -1,9 +1,7 @@
 import asyncio
-
 from app.agents.base import BaseAgent
 from app.llm.provider import LLMProvider
 from app.models.task import Task
-
 
 class ResearcherAgent(BaseAgent):
     def __init__(self):
@@ -24,27 +22,27 @@ class ResearcherAgent(BaseAgent):
         await asyncio.sleep(1)
 
         prompt = f"""
-You are the Researcher agent inside ORBIT.
+                    You are the Researcher agent inside ORBIT.
 
-Your job is to analyze the task and produce useful research
-that another agent can directly use.
+                    Your job is to analyze the task and produce useful research
+                    that another agent can directly use.
 
-Task title:
-{task.title}
+                    Task title:
+                    {task.title}
 
-Task description:
-{task.description}
+                    Task description:
+                    {task.description}
 
-Provide:
-1. The important requirements.
-2. Key technical considerations.
-3. Potential risks or edge cases.
-4. Concrete recommendations for the implementation agent.
+                    Provide:
+                    1. The important requirements.
+                    2. Key technical considerations.
+                    3. Potential risks or edge cases.
+                    4. Concrete recommendations for the implementation agent.
 
-Be concise but useful.
+                    Be concise but useful.
 
-Return ONLY the research findings.
-"""
+                    Return ONLY the research findings.
+                """
 
         result = self.llm.generate(prompt)
 

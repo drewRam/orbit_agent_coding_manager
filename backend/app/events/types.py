@@ -15,7 +15,8 @@ class EventType(str, Enum):
     AGENT_STARTED = "agent_started"
     AGENT_COMPLETED = "agent_completed"
     PROJECT_COMPLETED = "project_completed"
-
+    MANAGER_DECISION = "manager_decision"
+    
 class Event(BaseModel):
     type: EventType
     project_id: str
